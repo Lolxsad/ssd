@@ -21,17 +21,13 @@ def keep_alive():
 
 # --- discum Bot Kodu ---
 TOKEN = os.environ.get('TOKEN')
-# ID'leri string olarak kullanmak daha güvenlidir.
 GUILD_ID = os.environ.get('GUILD_ID')
 VOICE_CHANNEL_ID = os.environ.get('VOICE_CHANNEL_ID')
 
-# Ortam değişkenlerinin dolu olup olmadığını kontrol et
 if not all([TOKEN, GUILD_ID, VOICE_CHANNEL_ID]):
     print("[!] HATA: TOKEN, GUILD_ID, veya VOICE_CHANNEL_ID ortam değişkenleri (Secrets) ayarlanmamış.")
     exit()
 
-# discum'un build number hatasını düzeltmek için User-Agent belirtiyoruz.
-# Bu, kütüphanenin doğru versiyon bilgisiyle çalışmasına yardımcı olur.
 bot = discum.Client(
     token=TOKEN,
     log={
@@ -43,34 +39,30 @@ bot = discum.Client(
 
 
 def join_voice(guild_id, channel_id):
-    # Bu, Discord'un ses durumu güncelleme komutudur (Opcode 4).
     payload = {
         "op": 4,
         "d": {
             "guild_id": guild_id,
             "channel_id": channel_id,
-            "self_mute": True,  # Kendini sustur
-            "self_deaf": True,   # Kendini sağırlaştır
+            "self_mute": True,
+            "self_deaf": True,
         }
     }
-    # Hazırladığımız komutu doğrudan gateway'e gönderiyoruz.
     bot.gateway.send(payload)
 
 
-# Olay dinleyicisini bu şekilde tanımlamak daha güvenilir olabilir.
 @bot.gateway.command
 def on_ready(resp):
-    # Bot 'READY' veya 'READY_SUPPLEMENTAL' olayını aldığında...
-    if resp.event.ready or resp.event.ready_supplemental:
-        user = bot.gateway.session.user
+    if resp.event.ready:
+        # HATA ALINAN SATIRI DÜZELTİYORUZ
+        # 'user' bilgisini session'dan değil, doğrudan READY olayının verisinden ('resp.d') alıyoruz.
+        user = resp.d['user'] 
         print(f"[✓] Gateway'e bağlanıldı: {user['username']}#{user['discriminator']}")
         
         print(f"[!] Ses kanalına bağlanılıyor -> Sunucu: {GUILD_ID}, Kanal: {VOICE_CHANNEL_ID}")
-        # Ses kanalına katılma fonksiyonunu çağır
         join_voice(GUILD_ID, VOICE_CHANNEL_ID)
 
 # Projeyi başlat
 keep_alive()
 print("[!] discum botu başlatılıyor...")
-# auto_reconnect=True, botun bağlantısı koparsa yeniden bağlanmasını sağlar.
 bot.gateway.run(auto_reconnect=True)
